@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use JWTAuth;
@@ -50,7 +52,7 @@ class UserController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
+            return response()->json($validator->errors(), 400);
         }
 
         $user = User::create([
@@ -62,5 +64,29 @@ class UserController extends Controller
         $token = JWTAuth::fromUser($user);
 
         return response()->json(compact('user', 'token'), 201);
+    }
+
+    /**
+     * Display the list resource by user id.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function showPosts($id)
+    {
+        $validator = Validator::make(['id' => $id], [
+            'id' => 'required|integer|min:1|exists:users,id',
+        ]);
+
+        try {
+            if ($validator->fails()) {
+                return response()->json(['msg' => 'bad_request', 'errors' => $validator->errors()], 422);
+            }
+
+            $post = DB::table('posts')->where('user_id', $id)->get();
+            return response()->json(['data' => $post]);
+        } catch (Exception $ex) {
+            return response()->json(['msg' => 'server_error'], 500);
+        }
     }
 }

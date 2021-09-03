@@ -19,6 +19,20 @@ Route::post('login', 'App\Http\Controllers\UserController@authenticate');
 
 
 Route::group(['middleware' => ['jwt.verify']], function () {
-
     Route::post('user', 'App\Http\Controllers\UserController@getAuthenticatedUser');
+
+    Route::prefix('posts')->group(function () {
+        Route::post('/', 'App\Http\Controllers\PostsController@store');
+        Route::delete('/{id}', 'App\Http\Controllers\PostsController@destroy');
+        Route::put('/{id}', 'App\Http\Controllers\PostsController@update');
+    });
+});
+
+Route::prefix('user')->group(function () {
+    Route::get('/{id}/posts', 'App\Http\Controllers\UserController@showPosts');
+});
+
+Route::prefix('posts')->group(function () {
+    Route::get('/', 'App\Http\Controllers\PostsController@index');
+    Route::get('/{id}', 'App\Http\Controllers\PostsController@show');
 });
