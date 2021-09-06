@@ -83,8 +83,10 @@ class UserController extends Controller
                 return response()->json(['msg' => 'bad_request', 'errors' => $validator->errors()], 422);
             }
 
-            $post = DB::table('posts')->where('user_id', $id)->get();
-            return response()->json(['data' => $post]);
+            $query = DB::table('posts')->where('posts.user_id', $id);
+            $query = PostsController::addLikesCountToQuery($query);
+            $posts = $query->selectRaw('posts.id, posts.user_id, title, body, count(likes_posts_users.id) as likes')->get();
+            return response()->json(['data' => $posts]);
         } catch (Exception $ex) {
             return response()->json(['msg' => 'server_error'], 500);
         }

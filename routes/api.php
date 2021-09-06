@@ -26,6 +26,11 @@ Route::group(['middleware' => ['jwt.verify']], function () {
         Route::delete('/{id}', 'App\Http\Controllers\PostsController@destroy');
         Route::put('/{id}', 'App\Http\Controllers\PostsController@update');
     });
+
+    Route::prefix('likes')->group(function () {
+        Route::post('/', 'App\Http\Controllers\LikesController@store');
+        Route::delete('/{id}', 'App\Http\Controllers\LikesController@destroy');
+    });
 });
 
 Route::prefix('user')->group(function () {
@@ -35,4 +40,10 @@ Route::prefix('user')->group(function () {
 Route::prefix('posts')->group(function () {
     Route::get('/', 'App\Http\Controllers\PostsController@index');
     Route::get('/{id}', 'App\Http\Controllers\PostsController@show');
+    Route::get('/{id}/likes', 'App\Http\Controllers\PostsController@showLikesByPostId');
+});
+
+Route::prefix('likes')->group(function () {
+    Route::get('/', 'App\Http\Controllers\LikesController@index');
+    Route::get('/{id}', 'App\Http\Controllers\LikesController@show');
 });
