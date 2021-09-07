@@ -29,14 +29,20 @@ class PostsController extends Controller
         $validator = Validator::make($request->all(), [
             'offset' => 'integer|min:0',
             'pageSize' => 'integer|min:1|max:10',
+            'content' => 'string',
         ]);
 
         try {
             if ($validator->fails())
                 return response()->json(['msg' => 'bad_request', 'errors' => $validator->errors()], 400);
 
-            $query = DB::table('posts')->where('active', 1);
+            $query = DB::table('posts');
             $query = $this->addLikesCountToQuery($query);
+
+            if (isset($request['content'])) {
+                $query->where('title', 'like', '%' . $request['content'] . '%');
+                $query->orWhere('body', 'like', '%' . $request['content'] . '%');
+            }
 
             if (isset($request['pageSize'])) {
                 $query->limit($request['pageSize']);
