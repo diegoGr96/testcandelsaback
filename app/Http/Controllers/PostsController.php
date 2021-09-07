@@ -14,7 +14,7 @@ class PostsController extends Controller
     public static function addLikesCountToQuery($query)
     {
         return $query
-            ->where('active', 1)
+            ->where('posts.active', 1)
             ->leftJoin('likes_posts_users', 'posts.id', '=', 'likes_posts_users.post_id')
             ->groupBy('posts.id');
     }
