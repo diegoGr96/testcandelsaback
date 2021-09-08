@@ -85,7 +85,7 @@ class UserController extends Controller
 
             $query = DB::table('posts')->where('posts.user_id', $id);
             $query = PostsController::addLikesCountToQuery($query);
-            $posts = $query->selectRaw('posts.id, posts.user_id, title, body, count(likes_posts_users.id) as likes')->get();
+            $posts = $query->selectRaw('posts.id, posts.user_id, users.name as author, title, body, count(likes_posts_users.id) as likes')->get();
             return response()->json(['data' => $posts]);
         } catch (Exception $ex) {
             return response()->json(['msg' => 'server_error'], 500);
