@@ -45,8 +45,9 @@ class LikesController extends Controller
                 ->limit(1)
                 ->select('id')->get();
 
-            //Insert
+            $likeStatus = 0;
             if (count($queryGetLike) === 0) {
+                //Insert
                 $now = date('Y:m:d H:i:s');
                 DB::table('likes_posts_users')->insert([
                     'user_id' => $request['userId'],
@@ -54,12 +55,17 @@ class LikesController extends Controller
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
-                return response()->json(['msg' => 'Like succesfully created.', 'data' => ['like' => 1]], 201);
-            }
 
-            //Delete
-            DB::table('likes_posts_users')->delete($queryGetLike[0]->id);
-            return response()->json(['msg' => 'Like succesfully deleted.', 'data' => ['like' => 0]], 200);
+                
+                $likeStatus = 1;
+            }else{
+                //Delete
+                DB::table('likes_posts_users')->delete($queryGetLike[0]->id);
+                $likeStatus = 0;
+            }
+            
+            $countLikes = DB::table('likes_posts_users')->where('post_id', $request['postId'])->groupBy('post_id')->count();
+            return response()->json(['data' => ['like' => $likeStatus, 'count' => $countLikes]], 201);
         } catch (Exception $ex) {
             return response()->json(['msg' => 'server_error'], 500);
         }

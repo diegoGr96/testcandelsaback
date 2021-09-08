@@ -16,6 +16,7 @@ class PostsController extends Controller
         return $query
             ->where('posts.active', 1)
             ->leftJoin('likes_posts_users', 'posts.id', '=', 'likes_posts_users.post_id')
+            ->join('users', 'users.id', '=', 'posts.user_id')
             ->groupBy('posts.id');
     }
 
@@ -40,8 +41,7 @@ class PostsController extends Controller
             $query = $this->addLikesCountToQuery($query);
 
             if (isset($request['content'])) {
-                $query->where('title', 'like', '%' . $request['content'] . '%');
-                $query->orWhere('body', 'like', '%' . $request['content'] . '%');
+                $query->whereRaw('(`title` like "%' . $request['content'] .'%" or `body` like "%' . $request['content'] . '%")');
             }
 
             if (isset($request['pageSize'])) {
@@ -50,7 +50,7 @@ class PostsController extends Controller
             }
 
             $posts = $query
-                ->selectRaw('posts.id, posts.user_id, posts.title, posts.body, count(likes_posts_users.id) as likes')
+                ->selectRaw('posts.id, posts.user_id, users.name as author, posts.title, posts.body, count(likes_posts_users.id) as likes')
                 ->get();
             return response()->json(['data' => $posts]);
         } catch (Exception $ex) {
@@ -110,9 +110,10 @@ class PostsController extends Controller
 
             $query = DB::table('posts')->where('posts.id', $id);
             $query = $this->addLikesCountToQuery($query);
-            $post = $query->selectRaw('posts.id, posts.user_id, posts.title, posts.body, count(likes_posts_users.id) as likes')
-                ->get()[0];
-            return response()->json($post);
+            $post = $query->selectRaw('posts.id, posts.user_id, users.name as author, posts.title, posts.body, count(likes_posts_users.id) as likes')
+                ->get();
+            $result = count($post) > 0 ? $post[0] : [];
+            return response()->json($result);
         } catch (Exception $ex) {
             return response()->json(['msg' => 'server_error', 'error' => $ex->getMessage()], 500);
         }
@@ -160,10 +161,6 @@ class PostsController extends Controller
         $req['id'] = $id;
 
         $validator = Validator::make($req, [
-            'id' => [
-                'required', 'integer', 'min:1', 'exists:posts,id',
-                ValidationRule::in(auth()->user()->id)
-            ],
             'title' => 'required|string|min:1|max:500',
             'body' => 'required|string|min:1|max:65535',
         ]);
@@ -171,6 +168,12 @@ class PostsController extends Controller
         try {
             if ($validator->fails())
                 return response()->json(['msg' => 'bad_request', 'errors' => $validator->errors()], 400);
+            
+                $isUserOwner = DB::table('posts')->where('id', $id)->get();
+                if(auth()->user()->id != $isUserOwner[0]->user_id)
+                    return response()->json(['msg' => 'No permisions'], 400);
+
+
             if (DB::table('posts')->where('id', $id)->get('active')[0]->active === 0)
                 return response()->json(['msg' => 'Post no active'], 422);
 
@@ -194,16 +197,10 @@ class PostsController extends Controller
      */
     public function destroy($id)
     {
-        $validator = Validator::make(['id' => $id], [
-            'id' => [
-                'required', 'integer', 'min:1', 'exists:posts,id',
-                ValidationRule::in(auth()->user()->id)
-            ]
-        ]);
-
         try {
-            if ($validator->fails())
-                return response()->json(['msg' => 'bad_request', 'errors' => $validator->errors()], 400);
+            $isUserOwner = DB::table('posts')->where('id', $id)->get();
+            if (auth()->user()->id != $isUserOwner[0]->user_id)
+                return response()->json(['msg' => 'No permisions'], 400);
 
             DB::table('posts')->where('id', $id)->update([
                 'active' => 0,
